@@ -71,6 +71,10 @@
     @if($order->transaction?->reference_number)
     <div class="row small"><span>Ref</span><span>{{ $order->transaction->reference_number }}</span></div>
     @endif
+    @if($order->payment_method === 'cash' && $order->transaction)
+    <div class="row"><span>Dibayar</span><span>Rp {{ number_format($order->transaction->cash_received, 0, ',', '.') }}</span></div>
+    <div class="row"><span>Kembalian</span><span>Rp {{ number_format($order->transaction->change_amount, 0, ',', '.') }}</span></div>
+    @endif
     @else
     <div class="divider"></div>
     <div class="row"><span>Status Bayar</span><span class="bold">⏳ BELUM BAYAR</span></div>

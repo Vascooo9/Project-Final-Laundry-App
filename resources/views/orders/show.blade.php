@@ -122,14 +122,31 @@
                                 </tr>
                             @endforeach
                         </tbody>
-                        <tfoot class="bg-sky-50">
-                            <tr>
-                                <td colspan="3" class="px-5 py-3 font-bold text-gray-800 text-right">TOTAL</td>
-                                <td class="px-5 py-3 font-bold text-sky-700 text-right text-lg">
-                                    Rp {{ number_format($order->total_amount, 0, ',', '.') }}
-                                </td>
-                            </tr>
-                        </tfoot>
+                <tfoot class="bg-sky-50">
+                <!-- SUBTOTAL -->
+                <tr>
+                    <td colspan="3" class="px-5 py-2 text-right text-gray-600">Subtotal</td>
+                    <td class="px-5 py-2 text-right">
+                        Rp {{ number_format($order->total_amount, 0, ',', '.') }}
+                    </td>
+                </tr>
+
+                <!-- ini pajaknya nih -->
+                <tr>
+                    <td colspan="3" class="px-5 py-2 text-right text-gray-600">Tax</td>
+                    <td class="px-5 py-2 text-right">
+                        Rp {{ number_format($order->transaction->tax_amount ?? 0, 0, ',', '.') }}
+                    </td>
+                </tr>
+
+                <!-- GRAND TOTAL -->
+                <tr>
+                    <td colspan="3" class="px-5 py-3 font-bold text-gray-800 text-right">TOTAL</td>
+                    <td class="px-5 py-3 font-bold text-sky-700 text-right text-lg">
+                        Rp {{ number_format($order->transaction->amount ?? $order->total_amount, 0, ',', '.') }}
+                    </td>
+                </tr>
+            </tfoot>
                     </table>
                 </div>
 
@@ -158,6 +175,22 @@
                             </p>
                             @if($order->transaction?->reference_number)
                                 <p class="text-xs text-green-600 mt-1">Ref: {{ $order->transaction->reference_number }}</p>
+                            @endif
+                            @if($order->payment_method === 'cash' && $order->transaction)
+                                <div class="mt-2 pt-2 border-t border-green-200 text-xs text-left">
+                                    <div class="flex justify-between">
+                                        <span class="text-green-700">Dibayar:</span>
+                                        <span class="font-semibold text-green-800">Rp {{ number_format($order->transaction->cash_received, 0, ',', '.') }}</span>
+                                    </div>
+                                    <div class="flex justify-between mt-0.5">
+                                        <span class="text-green-700">Kembalian:</span>
+                                        <span class="font-semibold text-green-800">Rp {{ number_format($order->transaction->change_amount, 0, ',', '.') }}</span>
+                                    </div>
+                                    <div class="flex justify-between mt-0.5">
+                                        <span class="text-green-700">Tax</span>
+                                        <span class="font-semibold text-green-800">Rp {{ number_format($order->transaction->tax_amount, 0, ',', '.') }}</span>
+                                    </div>
+                                </div>
                             @endif
                         </div>
                     @else
@@ -226,69 +259,134 @@
     <div x-data="{ payModal: false, method: 'cash' }">
     
     <button @click="payModal = true" type="button"
-            class="w-full py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-sm transition-all active:scale-95 shadow-lg shadow-sky-200">
+        class="w-full py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-sm transition-all active:scale-95 shadow-lg shadow-sky-200">
         💰 Proses Pembayaran
     </button>
 
     <div x-show="payModal" 
          x-cloak
-         x-transition:enter="ease-out duration-200" 
-         x-transition:enter-start="opacity-0"
-         x-transition:enter-end="opacity-100" 
+         x-transition
          class="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
          @click.self="payModal = false">
 
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" @click.stop>
-            <h3 class="font-bold text-gray-900 text-lg mb-1">💳 Proses Pembayaran</h3>
-            <p class="text-gray-500 text-sm mb-5">{{ $order->order_number }} · {{ $order->customer->name }}</p>
 
-            <div class="bg-sky-50 border border-sky-200 rounded-xl p-4 text-center mb-5">
-                <p class="text-sm text-sky-600 font-medium">Total Tagihan</p>
-                <p class="text-3xl font-bold text-sky-700 mt-1">
-                    Rp {{ number_format($order->total_amount, 0, ',', '.') }}
-                </p>
+            <h3 class="font-bold text-gray-900 text-lg mb-1">💳 Proses Pembayaran</h3>
+            <p class="text-gray-500 text-sm mb-5">
+                {{ $order->order_number }} · {{ $order->customer->name }}
+            </p>
+
+            <!-- ✅ CORE LOGIC DI SINI -->
+            <div 
+                x-data="{
+                    cashReceived: '',
+                    subtotal: {{ $order->total_amount }},
+                    taxRate: 0.1,
+
+                    get tax() {
+                        return this.subtotal * this.taxRate
+                    },
+
+                    get grandTotal() {
+                        return this.subtotal + this.tax
+                    }
+                }"
+            >
+
+                <!-- TOTAL + TAX -->
+                <div class="bg-sky-50 border border-sky-200 rounded-xl p-4 text-center mb-5">
+                    <p class="text-sm text-sky-600 font-medium">Subtotal</p>
+                    <p class="text-lg font-semibold text-gray-700">
+                        Rp {{ number_format($order->total_amount, 0, ',', '.') }}
+                    </p>
+
+                    <p class="text-sm text-gray-600 mt-2">
+                        Tax (10%): Rp 
+                        <span x-text="new Intl.NumberFormat('id-ID').format(tax)"></span>
+                    </p>
+
+                    <p class="text-2xl font-bold text-sky-700 mt-2">
+                        Rp <span x-text="new Intl.NumberFormat('id-ID').format(grandTotal)"></span>
+                    </p>
+                </div>
+
+                <form action="{{ route('orders.payment', $order) }}" method="POST">
+                    @csrf
+
+                    <!-- PAYMENT METHOD -->
+                    <div class="mb-4 text-left">
+                        <label class="text-sm font-semibold text-gray-700 block mb-2">
+                            Metode Pembayaran
+                        </label>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="payment_method" value="cash" x-model="method" class="sr-only peer">
+                                <div class="p-3 border-2 rounded-xl peer-checked:border-sky-500 peer-checked:bg-sky-50 border-gray-200 text-center">
+                                    💵 Cash
+                                </div>
+                            </label>
+
+                            <label class="cursor-pointer">
+                                <input type="radio" name="payment_method" value="transfer" x-model="method" class="sr-only peer">
+                                <div class="p-3 border-2 rounded-xl peer-checked:border-sky-500 peer-checked:bg-sky-50 border-gray-200 text-center">
+                                    📱 Transfer
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- TRANSFER -->
+                    <div x-show="method === 'transfer'" class="mb-4 text-left">
+                        <input type="text" name="reference_number" placeholder="No referensi"
+                               class="w-full border rounded-lg px-3 py-2">
+                    </div>
+
+                    <!-- CASH -->
+                    <div x-show="method === 'cash'" class="mb-4 text-left">
+                        <input type="number" 
+                               name="cash_received" 
+                               x-model="cashReceived"
+                               placeholder="Jumlah uang"
+                               class="w-full border rounded-lg px-3 py-2">
+
+                        <div x-show="cashReceived > 0" class="mt-2 text-sm">
+
+                            <!-- KEMBALIAN -->
+                            <template x-if="cashReceived >= grandTotal">
+                                <p class="text-green-600 font-medium">
+                                    Kembalian: Rp 
+                                    <span x-text="new Intl.NumberFormat('id-ID').format(cashReceived - grandTotal)"></span>
+                                </p>
+                            </template>
+
+                            <!-- KURANG -->
+                            <template x-if="cashReceived < grandTotal">
+                                <p class="text-red-500 font-medium">
+                                    Uang kurang: Rp 
+                                    <span x-text="new Intl.NumberFormat('id-ID').format(grandTotal - cashReceived)"></span>
+                                </p>
+                            </template>
+
+                        </div>
+                    </div>
+
+                    <!-- SUBMIT -->
+                    <div class="flex gap-3 mt-6">
+                        <button type="submit"
+                            class="flex-1 py-3 bg-sky-600 text-white font-bold rounded-xl">
+                            ✅ Bayar
+                        </button>
+
+                        <button type="button" @click="payModal = false"
+                            class="px-4 py-3 bg-gray-100 rounded-xl">
+                            Batal
+                        </button>
+                    </div>
+
+                </form>
             </div>
 
-            <form action="{{ route('orders.payment', $order) }}" method="POST">
-                @csrf
-
-                <div class="mb-4 text-left">
-                    <label class="text-sm font-semibold text-gray-700 block mb-2">Metode Pembayaran</label>
-                    <div class="grid grid-cols-2 gap-3">
-                        <label class="cursor-pointer">
-                            <input type="radio" name="payment_method" value="cash" x-model="method" class="sr-only peer">
-                            <div class="p-3 border-2 rounded-xl peer-checked:border-sky-500 peer-checked:bg-sky-50 border-gray-200 text-center transition hover:border-sky-300">
-                                <div class="text-2xl">💵</div>
-                                <p class="text-sm font-semibold mt-1 text-gray-700">Cash</p>
-                            </div>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="radio" name="payment_method" value="transfer" x-model="method" class="sr-only peer">
-                            <div class="p-3 border-2 rounded-xl peer-checked:border-sky-500 peer-checked:bg-sky-50 border-gray-200 text-center transition hover:border-sky-300">
-                                <div class="text-2xl">📱</div>
-                                <p class="text-sm font-semibold mt-1 text-gray-700">Transfer</p>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <div x-show="method === 'transfer'" x-transition class="mb-4 text-left">
-                    <label class="text-sm font-semibold text-gray-700 block mb-1">No. Referensi Transfer</label>
-                    <input type="text" name="reference_number" placeholder="Masukkan nomor referensi..." 
-                           class="w-full border-gray-300 rounded-lg shadow-sm focus:border-sky-500 focus:ring-sky-500 px-3 py-2 border">
-                </div>
-
-                <div class="flex gap-3 mt-6">
-                    <button type="submit" @click="payModal = false"
-                        class="flex-1 py-3 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl transition active:scale-95 shadow-md">
-                        ✅ Konfirmasi Bayar
-                    </button>
-                    <button type="button" @click="payModal = false"
-                        class="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition">
-                        Batal
-                    </button>
-                </div>
-            </form>
         </div>
     </div>
 </div>

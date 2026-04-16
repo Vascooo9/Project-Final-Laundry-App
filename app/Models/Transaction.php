@@ -8,6 +8,7 @@ class Transaction extends Model
     protected $fillable = [
         'order_id', 'amount', 'payment_method',
         'reference_number', 'paid_at', 'received_by',
+        'cash_received', 'change_amount'
     ];
 
     protected $casts = [

@@ -156,18 +156,35 @@ class OrderController extends Controller
         $request->validate([
             'payment_method'   => ['required', 'in:cash,transfer'],
             'reference_number' => ['required_if:payment_method,transfer', 'nullable', 'string'],
+            'cash_received'    => ['required_if:payment_method,cash', 'nullable', 'numeric', 'min:' . $order->total_amount],
         ]);
 
         if ($order->payment_status === 'paid') {
             return back()->with('error', 'Order ini sudah dibayar.');
         }
 
-        DB::transaction(function () use ($request, $order) {
+        $cash_received = null;
+        $tax_amount    = 0;
+        $change_amount = null;
+
+        $tax_rate = 0.1;
+        $tax_amount = $order->total_amount * $tax_rate;
+        $grand_total = $order->total_amount + $tax_amount;
+
+        if ($request->payment_method === 'cash') {
+            $cash_received = $request->cash_received;
+            $change_amount = $cash_received - $order->total_amount;
+        }
+
+        DB::transaction(function () use ($grand_total, $request, $order, $cash_received, $tax_amount, $change_amount) {
             Transaction::create([
                 'order_id'         => $order->id,
-                'amount'           => $order->total_amount,
+                'amount'           => $grand_total, 
                 'payment_method'   => $request->payment_method,
                 'reference_number' => $request->reference_number,
+                'cash_received'    => $cash_received,
+                'tax_amount'       => $tax_amount,
+                'change_amount'    => $change_amount,
                 'paid_at'          => now(),
                 'received_by'      => Auth::id(),
             ]);
