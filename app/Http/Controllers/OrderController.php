@@ -49,6 +49,7 @@ class OrderController extends Controller
     public function create()
     {
         $services = Service::where('is_active', true)->get();
+        $customers = Customer::select('id', 'name', 'phone', 'is_member')->get();
 
         $servicesFormatted = $services->map(fn($s) => [
             'id'    => $s->id,
@@ -58,7 +59,8 @@ class OrderController extends Controller
         ]);
 
         return view('orders.create', [
-            'services' => $servicesFormatted
+            'services' => $servicesFormatted,
+            'customers' => $customers,
         ]);
     }
 
@@ -78,17 +80,31 @@ class OrderController extends Controller
             'services.*.note'  => ['nullable', 'string'],
         ]);
 
-        // ✅ FIX: Deklarasi $order di luar closure agar bisa diakses setelah transaksi
         $order = null;
 
         DB::transaction(function () use ($request, &$order) {
-            $customer = Customer::firstOrCreate(
-                ['name' => $request->customer_name],
-                [
-                    'phone'   => $request->customer_phone,
-                    'address' => $request->delivery_address,
-                ]
-            );
+            if ($request->customer_id) {
+                $customer = Customer::find($request->customer_id);
+
+                if ($request->is_member) {
+                    $customer->update([
+                        'is_member' => true,
+                        'discount' => 10,
+                    ]);
+
+                    $customer->refresh();
+                }
+            } else {
+                $customer = Customer::firstOrCreate(
+                    ['name' => $request->customer_name],
+                    [
+                        'phone'   => $request->customer_phone,
+                        'address' => $request->delivery_address,
+                        'is_member' => $request->is_member ? true : false,
+                        'discount'  => $request->is_member ? 10 : 0,
+                    ]
+                );
+            }
 
             $order = Order::create([
                 'customer_id'      => $customer->id,
@@ -119,10 +135,21 @@ class OrderController extends Controller
                 ]);
             }
 
-            $order->update(['total_amount' => $total]);
+            $discount_amount = 0;
+
+            if ($customer->is_member) {
+                $discount_amount = $total * ($customer->discount / 100);
+            }
+
+            $final_total = $total - $discount_amount;
+            $order->update([
+                'subtotal' => $total,
+                'total_amount' => $final_total,
+                'discount_amount' => $discount_amount,
+            ]);
         });
 
-        // ✅ FIX: Redirect langsung pakai $order (tidak lagi pakai session)
+
         return redirect()
             ->route('orders.show', $order)
             ->with('success', 'Order berhasil dibuat! Silakan proses pembayaran.');
@@ -153,37 +180,54 @@ class OrderController extends Controller
 
     public function processPayment(Request $request, Order $order)
     {
-        $request->validate([
-            'payment_method'   => ['required', 'in:cash,transfer'],
-            'reference_number' => ['required_if:payment_method,transfer', 'nullable', 'string'],
-            'cash_received'    => ['required_if:payment_method,cash', 'nullable', 'numeric', 'min:' . $order->total_amount],
-        ]);
-
         if ($order->payment_status === 'paid') {
             return back()->with('error', 'Order ini sudah dibayar.');
         }
 
-        $cash_received = null;
-        $tax_amount    = 0;
-        $change_amount = null;
-
         $tax_rate = 0.1;
-        $tax_amount = $order->total_amount * $tax_rate;
-        $grand_total = $order->total_amount + $tax_amount;
+
+        $subtotal = $order->subtotal ?? $order->total_amount;
+        $member_discount = $order->discount_amount ?? 0;
+        $voucher_discount = $request->voucher_discount ?? 0;
+        
+        $after_member = $subtotal - $member_discount;
+        $after_voucher = $after_member - $voucher_discount;
+
+        $tax_amount = $after_voucher * $tax_rate;
+        $grand_total = $after_voucher + $tax_amount;
+
+        $request->validate([
+            'payment_method'   => ['required', 'in:cash,transfer'],
+            'reference_number' => ['required_if:payment_method,transfer', 'nullable', 'string'],
+            'cash_received'    => ['required_if:payment_method,cash', 'nullable', 'numeric', 'min:' . $grand_total],
+        ]);
+
+        $cash_received = null;
+        $change_amount = null;
 
         if ($request->payment_method === 'cash') {
             $cash_received = $request->cash_received;
-            $change_amount = $cash_received - $order->total_amount;
+            $change_amount = $cash_received - $grand_total;
         }
 
-        DB::transaction(function () use ($grand_total, $request, $order, $cash_received, $tax_amount, $change_amount) {
+        DB::transaction(function () use (
+            $grand_total,
+            $request,
+            $order,
+            $cash_received,
+            $tax_amount,
+            $change_amount,
+            $voucher_discount
+        ) {
             Transaction::create([
                 'order_id'         => $order->id,
-                'amount'           => $grand_total, 
+                'amount'           => $grand_total,
+                'tax_amount'       => $tax_amount,
+                'voucher_code'     => $request->voucher_code,
+                'voucher_discount' => $voucher_discount,
                 'payment_method'   => $request->payment_method,
                 'reference_number' => $request->reference_number,
                 'cash_received'    => $cash_received,
-                'tax_amount'       => $tax_amount,
                 'change_amount'    => $change_amount,
                 'paid_at'          => now(),
                 'received_by'      => Auth::id(),
@@ -196,9 +240,9 @@ class OrderController extends Controller
             ]);
         });
 
-        return redirect()->route('orders.show', $order)->with('success', 'Pembayaran berhasil dicatat!');
+        return redirect()->route('orders.show', $order)
+            ->with('success', 'Pembayaran berhasil dicatat!');
     }
-
     public function receipt(Order $order)
     {
         $order->load(['customer', 'items.service', 'user', 'transaction']);

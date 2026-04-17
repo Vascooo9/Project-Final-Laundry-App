@@ -4,9 +4,11 @@
 @section('page-title', 'Detail Order')
 
 @section('content')
-<style>
-    [x-cloak] { display: none !important; }
-</style>
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+    </style>
     <div class="max-w-3xl mx-auto space-y-6" x-data="{ payModal: false }">
 
         {{-- Header --}}
@@ -22,7 +24,8 @@
                 <div>
                     <h2 class="font-bold text-gray-900 text-lg">{{ $order->order_number }}</h2>
                     <p class="text-xs text-gray-500">
-                        {{ $order->created_at->locale('id')->isoFormat('dddd, D MMMM YYYY · HH:mm') }}</p>
+                        {{ $order->created_at->locale('id')->isoFormat('dddd, D MMMM YYYY · HH:mm') }}
+                    </p>
                 </div>
             </div>
             <div class="flex items-center gap-2">
@@ -122,31 +125,39 @@
                                 </tr>
                             @endforeach
                         </tbody>
-                <tfoot class="bg-sky-50">
-                <!-- SUBTOTAL -->
-                <tr>
-                    <td colspan="3" class="px-5 py-2 text-right text-gray-600">Subtotal</td>
-                    <td class="px-5 py-2 text-right">
-                        Rp {{ number_format($order->total_amount, 0, ',', '.') }}
-                    </td>
-                </tr>
+                        <tfoot class="bg-sky-50">
+                            <!-- Sini subtotal -->
+                            <tr>
+                                <td colspan="3" class="px-5 py-2 text-right text-gray-600">Subtotal</td>
+                                <td class="px-5 py-2 text-right">
+                                    Rp {{ number_format($order->subtotal, 0, ',', '.') }}
+                                </td>
+                            </tr>
 
-                <!-- ini pajaknya nih -->
-                <tr>
-                    <td colspan="3" class="px-5 py-2 text-right text-gray-600">Tax</td>
-                    <td class="px-5 py-2 text-right">
-                        Rp {{ number_format($order->transaction->tax_amount ?? 0, 0, ',', '.') }}
-                    </td>
-                </tr>
+                            <!-- ini pajaknya nih -->
+                            <tr>
+                                <td colspan="3" class="px-5 py-2 text-right text-gray-600">Tax</td>
+                                <td class="px-5 py-2 text-right">
+                                    Rp {{ number_format($order->transaction->tax_amount ?? 0, 0, ',', '.') }}
+                                </td>
+                            </tr>
 
-                <!-- GRAND TOTAL -->
-                <tr>
-                    <td colspan="3" class="px-5 py-3 font-bold text-gray-800 text-right">TOTAL</td>
-                    <td class="px-5 py-3 font-bold text-sky-700 text-right text-lg">
-                        Rp {{ number_format($order->transaction->amount ?? $order->total_amount, 0, ',', '.') }}
-                    </td>
-                </tr>
-            </tfoot>
+                            {{-- ini table diskon --}}
+                            <tr>
+                                <td colspan="3" class="text-right text-gray-600">Diskon</td>
+                                <td class="text-right text-green-500">
+                                    - Rp {{ number_format($order->discount_amount ?? 0, 0, ',', '.') }}
+                                </td>
+                            </tr>
+
+                            <!-- ini grandTotal -->
+                            <tr>
+                                <td colspan="3" class="px-5 py-3 font-bold text-gray-800 text-right">TOTAL</td>
+                                <td class="px-5 py-3 font-bold text-sky-700 text-right text-lg">
+                                    Rp {{ number_format($order->transaction->amount ?? $order->total_amount, 0, ',', '.') }}
+                                </td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
 
@@ -180,25 +191,33 @@
                                 <div class="mt-2 pt-2 border-t border-green-200 text-xs text-left">
                                     <div class="flex justify-between">
                                         <span class="text-green-700">Dibayar:</span>
-                                        <span class="font-semibold text-green-800">Rp {{ number_format($order->transaction->cash_received, 0, ',', '.') }}</span>
+                                        <span class="font-semibold text-green-800">Rp
+                                            {{ number_format($order->transaction->cash_received, 0, ',', '.') }}</span>
                                     </div>
                                     <div class="flex justify-between mt-0.5">
                                         <span class="text-green-700">Kembalian:</span>
-                                        <span class="font-semibold text-green-800">Rp {{ number_format($order->transaction->change_amount, 0, ',', '.') }}</span>
+                                        <span class="font-semibold text-green-800">Rp
+                                            {{ number_format($order->transaction->change_amount, 0, ',', '.') }}</span>
                                     </div>
                                     <div class="flex justify-between mt-0.5">
                                         <span class="text-green-700">Tax</span>
-                                        <span class="font-semibold text-green-800">Rp {{ number_format($order->transaction->tax_amount, 0, ',', '.') }}</span>
+                                        <span class="font-semibold text-green-800">Rp
+                                            {{ number_format($order->transaction->tax_amount, 0, ',', '.') }}</span>
                                     </div>
                                 </div>
                             @endif
                         </div>
                     @else
+
+                        @php
+                            $grandTotal = $order->total_amount * 1.1;
+                        @endphp
                         <div class="bg-red-50 border border-red-200 rounded-xl p-3 text-center mb-3">
                             <span class="text-2xl">⏳</span>
                             <p class="font-bold text-red-700 mt-1">Belum Bayar</p>
                             <p class="text-lg font-bold text-red-600 mt-1">Rp
-                                {{ number_format($order->total_amount, 0, ',', '.') }}</p>
+                                {{ number_format($grandTotal, 0, ',', '.') }}
+                            </p>
                         </div>
                     @endif
                 </div>
@@ -257,137 +276,185 @@
 
     {{-- Payment Modal --}}
     <div x-data="{ payModal: false, method: 'cash' }">
-    
-    <button @click="payModal = true" type="button"
-        class="w-full py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-sm transition-all active:scale-95 shadow-lg shadow-sky-200">
-        💰 Proses Pembayaran
-    </button>
 
-    <div x-show="payModal" 
-         x-cloak
-         x-transition
-         class="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-         @click.self="payModal = false">
+        <button @click="payModal = true" type="button"
+            class="w-full py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl text-sm transition-all active:scale-95 shadow-lg shadow-sky-200">
+            💰 Proses Pembayaran
+        </button>
 
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" @click.stop>
+        <div x-show="payModal" x-cloak x-transition
+            class="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            @click.self="payModal = false">
 
-            <h3 class="font-bold text-gray-900 text-lg mb-1">💳 Proses Pembayaran</h3>
-            <p class="text-gray-500 text-sm mb-5">
-                {{ $order->order_number }} · {{ $order->customer->name }}
-            </p>
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" @click.stop>
 
-            <!-- ✅ CORE LOGIC DI SINI -->
-            <div 
-                x-data="{
-                    cashReceived: '',
-                    subtotal: {{ $order->total_amount }},
-                    taxRate: 0.1,
+                <h3 class="font-bold text-gray-900 text-lg mb-1">💳 Proses Pembayaran</h3>
+                <p class="text-gray-500 text-sm mb-5">
+                    {{ $order->order_number }} · {{ $order->customer->name }}
+                </p>
 
-                    get tax() {
-                        return this.subtotal * this.taxRate
-                    },
+                <!-- ✅ CORE LOGIC DI SINI -->
+                <div x-data="{
+                                cashReceived: 0,
+                                subtotal: {{ $order->subtotal ?? 0 }},
+                                discount: {{ $order->discount_amount ?? 0 }},
+                                voucherCode: '',
+                                voucherDiscount: 0,
+                                taxRate: 0.1,
 
-                    get grandTotal() {
-                        return this.subtotal + this.tax
-                    }
-                }"
-            >
+                                formatRupiah(val) {
+                                return new Intl.NumberFormat('id-ID').format(val || 0)
+                                },
 
-                <!-- TOTAL + TAX -->
-                <div class="bg-sky-50 border border-sky-200 rounded-xl p-4 text-center mb-5">
-                    <p class="text-sm text-sky-600 font-medium">Subtotal</p>
-                    <p class="text-lg font-semibold text-gray-700">
-                        Rp {{ number_format($order->total_amount, 0, ',', '.') }}
-                    </p>
+                                applyVoucher() {
+                                let base = Number(this.subtotal || 0) - Number(this.discount || 0);
 
-                    <p class="text-sm text-gray-600 mt-2">
-                        Tax (10%): Rp 
-                        <span x-text="new Intl.NumberFormat('id-ID').format(tax)"></span>
-                    </p>
+                                if (this.voucherCode === 'DISKON10') {
+                                this.voucherDiscount = base * 0.1;
+                                } else if (this.voucherCode === 'HEMAT5') {
+                                this.voucherDiscount = 5000;
+                                } else {
+                                this.voucherDiscount = 0;
+                                }},
 
-                    <p class="text-2xl font-bold text-sky-700 mt-2">
-                        Rp <span x-text="new Intl.NumberFormat('id-ID').format(grandTotal)"></span>
-                    </p>
+                                get afterDiscount() {
+                                return Number(this.subtotal || 0) - Number(this.discount || 0)
+                                },
+
+                                et afterVoucher() {
+                                return this.afterDiscount - Number(this.voucherDiscount || 0)
+                                },
+
+                                get tax() {
+                                return this.afterVoucher * Number(this.taxRate || 0)
+                                },
+
+                                get grandTotal() {
+                                return this.afterVoucher + this.tax
+                                },
+
+                                get change() {
+                                return Number(this.cashReceived || 0) - this.grandTotal
+                                }}">
+
+                    <!-- TOTAL + TAX -->
+                    <div class="bg-sky-50 border border-sky-200 rounded-xl p-4 text-center mb-5">
+                        <p class="text-sm text-sky-600 font-medium">Subtotal</p>
+                        <p class="text-lg font-semibold text-gray-700">
+                            Rp {{ number_format($order->subtotal, 0, ',', '.') }}
+                        </p>
+
+                        <p class="text-sm text-green-600">
+                            Diskon: - Rp {{ number_format($order->discount_amount, 0, ',', '.') }}
+                        </p>
+
+                        <p class="text-sm text-gray-600 mt-2">
+                            Tax (10%): Rp
+                            <span x-text="new Intl.NumberFormat('id-ID').format(tax)"></span>
+                        </p>
+
+                        <p class="text-2xl font-bold text-sky-700 mt-2">
+                            Rp <span x-text="new Intl.NumberFormat('id-ID').format(grandTotal)"></span>
+                        </p>
+                    </div>
+
+                    <form action="{{ route('orders.payment', $order) }}" method="POST">
+                        @csrf
+
+                        <!-- PAYMENT METHOD -->
+                        <div class="mb-4 text-left">
+                            <label class="text-sm font-semibold text-gray-700 block mb-2">
+                                Metode Pembayaran
+                            </label>
+
+                            <div class="mt-3">
+                                <label class="text-sm font-semibold text-gray-700">Kode Voucher</label>
+                                <input type="text" x-model="voucherCode" @input="applyVoucher"
+                                    placeholder="Masukkan kode voucher"
+                                    class="w-full mt-1 px-3 py-2 border rounded-lg text-sm">
+                            </div>
+
+                            <p class="text-xs text-green-600 mt-1" x-show="voucherDiscount > 0">
+                                Voucher aktif: -Rp <span x-text="formatRupiah(voucherDiscount)"></span>
+                            </p>
+
+                            <div class="grid grid-cols-2 gap-3">
+
+                                <!-- CASH -->
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="payment_method" value="cash" x-model="method"
+                                        class="sr-only peer">
+                                    <div class="p-3 border-2 rounded-xl 
+                                        peer-checked:border-sky-500 
+                                        peer-checked:bg-sky-50 
+                                        border-gray-200 text-center">
+                                        💵 Cash
+                                    </div>
+                                </label>
+
+                                <!-- TRANSFER -->
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="payment_method" value="transfer" x-model="method"
+                                        class="sr-only peer">
+                                    <div class="p-3 border-2 rounded-xl 
+                                        peer-checked:border-sky-500 
+                                        peer-checked:bg-sky-50 
+                                        border-gray-200 text-center">
+                                        📱 Transfer
+                                    </div>
+                                </label>
+
+                            </div>
+                        </div>
+
+                        <!-- TRANSFER -->
+                        <div x-show="method === 'transfer'" class="mb-4 text-left">
+                            <input type="text" name="reference_number" placeholder="No referensi"
+                                class="w-full border rounded-lg px-3 py-2">
+                        </div>
+
+                        <!-- CASH -->
+                        <div x-show="method === 'cash'" class="mb-4 text-left">
+                            <input type="number" name="cash_received" x-model.number="cashReceived"
+                                placeholder="Jumlah uang" class="w-full border rounded-lg px-3 py-2">
+
+                            <div x-show="cashReceived > 0" class="mt-2 text-sm">
+
+                                <!-- KEMBALIAN -->
+                                <template x-if="cashReceived >= grandTotal">
+                                    <p class="text-green-600 font-medium">
+                                        Kembalian: Rp
+                                        <span x-text="formatRupiah(change)"></span>
+                                    </p>
+                                </template>
+
+                                <!-- KURANG -->
+                                <template x-if="cashReceived < grandTotal">
+                                    <p class="text-red-500 font-medium">
+                                        Uang kurang: Rp
+                                        <span
+                                            x-text="new Intl.NumberFormat('id-ID').format(grandTotal - cashReceived)"></span>
+                                    </p>
+                                </template>
+
+                            </div>
+                        </div>
+
+                        <!-- SUBMIT -->
+                        <div class="flex gap-3 mt-6">
+                            <button type="submit" class="flex-1 py-3 bg-sky-600 text-white font-bold rounded-xl">
+                                ✅ Bayar
+                            </button>
+
+                            <button type="button" @click="payModal = false" class="px-4 py-3 bg-gray-100 rounded-xl">
+                                Batal
+                            </button>
+                        </div>
+
+                    </form>
                 </div>
 
-                <form action="{{ route('orders.payment', $order) }}" method="POST">
-                    @csrf
-
-                    <!-- PAYMENT METHOD -->
-                    <div class="mb-4 text-left">
-                        <label class="text-sm font-semibold text-gray-700 block mb-2">
-                            Metode Pembayaran
-                        </label>
-
-                        <div class="grid grid-cols-2 gap-3">
-                            <label class="cursor-pointer">
-                                <input type="radio" name="payment_method" value="cash" x-model="method" class="sr-only peer">
-                                <div class="p-3 border-2 rounded-xl peer-checked:border-sky-500 peer-checked:bg-sky-50 border-gray-200 text-center">
-                                    💵 Cash
-                                </div>
-                            </label>
-
-                            <label class="cursor-pointer">
-                                <input type="radio" name="payment_method" value="transfer" x-model="method" class="sr-only peer">
-                                <div class="p-3 border-2 rounded-xl peer-checked:border-sky-500 peer-checked:bg-sky-50 border-gray-200 text-center">
-                                    📱 Transfer
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- TRANSFER -->
-                    <div x-show="method === 'transfer'" class="mb-4 text-left">
-                        <input type="text" name="reference_number" placeholder="No referensi"
-                               class="w-full border rounded-lg px-3 py-2">
-                    </div>
-
-                    <!-- CASH -->
-                    <div x-show="method === 'cash'" class="mb-4 text-left">
-                        <input type="number" 
-                               name="cash_received" 
-                               x-model="cashReceived"
-                               placeholder="Jumlah uang"
-                               class="w-full border rounded-lg px-3 py-2">
-
-                        <div x-show="cashReceived > 0" class="mt-2 text-sm">
-
-                            <!-- KEMBALIAN -->
-                            <template x-if="cashReceived >= grandTotal">
-                                <p class="text-green-600 font-medium">
-                                    Kembalian: Rp 
-                                    <span x-text="new Intl.NumberFormat('id-ID').format(cashReceived - grandTotal)"></span>
-                                </p>
-                            </template>
-
-                            <!-- KURANG -->
-                            <template x-if="cashReceived < grandTotal">
-                                <p class="text-red-500 font-medium">
-                                    Uang kurang: Rp 
-                                    <span x-text="new Intl.NumberFormat('id-ID').format(grandTotal - cashReceived)"></span>
-                                </p>
-                            </template>
-
-                        </div>
-                    </div>
-
-                    <!-- SUBMIT -->
-                    <div class="flex gap-3 mt-6">
-                        <button type="submit"
-                            class="flex-1 py-3 bg-sky-600 text-white font-bold rounded-xl">
-                            ✅ Bayar
-                        </button>
-
-                        <button type="button" @click="payModal = false"
-                            class="px-4 py-3 bg-gray-100 rounded-xl">
-                            Batal
-                        </button>
-                    </div>
-
-                </form>
             </div>
-
         </div>
     </div>
-</div>
 @endsection

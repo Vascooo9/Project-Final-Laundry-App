@@ -1,4 +1,5 @@
 <?php
+
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
@@ -11,29 +12,45 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // ✅ FIX: is_active => true wajib disertakan eksplisit
-        User::create([
-            'name'      => 'Admin LaundryPro',
-            'email'     => 'admin@laundrypro.id',
-            'password'  => Hash::make('password'),
-            'role'      => 'admin',
-            'is_active' => true,
-        ]);
+        User::firstOrCreate(
+            ['email' => 'admin@laundrypro.id'], 
+            [
+                'name'      => 'Admin LaundryPro',
+                'password'  => Hash::make('password'),
+                'role'      => 'admin',
+                'is_active' => true,
+            ]
+        );
 
-        User::create([
-            'name'      => 'Budi Santoso',
-            'email'     => 'budi@laundrypro.id',
-            'password'  => Hash::make('password'),
-            'role'      => 'karyawan',
-            'is_active' => true,
-        ]);
+        User::firstOrCreate(
+            ['email' => 'ceo@laundrypro.id'], 
+            [
+                'name'      => 'Lalo Salamanca',
+                'password'  => Hash::make('password'),
+                'role'      => 'admin',
+                'is_active' => true,
+            ]
+        );
 
-        User::create([
-            'name'      => 'Siti Rahayu',
-            'email'     => 'siti@laundrypro.id',
-            'password'  => Hash::make('password'),
-            'role'      => 'karyawan',
-            'is_active' => true,
-        ]);
+        User::firstOrCreate(
+            ['email' => 'budi@laundrypro.id'], 
+            [
+                'name'      => 'Budiono Siregar',
+                'password'  => Hash::make('password'),
+                'role'      => 'karyawan',
+                'is_active' => true,
+            ]
+        );
+
+        User::firstOrCreate(
+            ['email' => 'siti@laundrypro.id'], 
+            [
+                'name'      => 'Siti Rahayu',
+                'password'  => Hash::make('password'),
+                'role'      => 'karyawan',
+                'is_active' => true,
+            ]
+        );
 
         // Services
         $services = [

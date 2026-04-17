@@ -11,8 +11,9 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('order_id')->constrained()->onDelete('restrict');
             $table->decimal('amount', 10, 2);
+            $table->decimal('tax_amount', 12, 2)->default(0);
             $table->enum('payment_method', ['cash', 'transfer']);
-            $table->string('reference_number')->nullable();   // No. referensi transfer
+            $table->string('reference_number')->nullable();
             $table->timestamp('paid_at');
             $table->foreignId('received_by')->constrained('users')->onDelete('restrict');
             $table->timestamps();

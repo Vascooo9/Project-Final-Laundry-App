@@ -20,21 +20,58 @@
                         <h3 class="font-bold text-gray-800 text-lg">Data Customer</h3>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-2 gap-4" x-data='{
+                            customers: @json($customers),
+                            name: @json(old("customer_name")),
+                            phone: @json(old("customer_phone")),
+
+                            selectCustomer(id) {
+                            const c = this.customers.find(x => x.id == id);
+                            if (c) {
+                            this.selectedId = c.id;
+                            this.name = c.name;
+                            this.phone = c.phone ?? "";
+                            this.isMember = c.is_member ?? false;}
+                            }
+                        }'>
+
+                        <input type="hidden" name="customer_id" :value="selectedId">
+
+                        <!-- SELECT CUSTOMER -->
+                        <div class="col-span-2">
+                            <label class="label">Pilih Customer Lama</label>
+                            <select @change="selectCustomer($event.target.value)" class="input-field">
+                                <option value="">-- Pilih Customer --</option>
+                                <template x-for="c in customers" :key="c.id">
+                                    <option :value="c.id" x-text="c.name + ' - ' + (c.phone ?? '-')">
+                                    </option>
+                                </template>
+                            </select>
+                        </div>
+
+                        <!-- NAMA -->
                         <div class="col-span-2">
                             <label class="label">Nama Customer <span class="text-red-500">*</span></label>
-                            <input type="text" name="customer_name" value="{{ old('customer_name') }}"
-                                placeholder="Masukkan nama lengkap"
+                            <input type="text" name="customer_name" x-model="name" placeholder="Masukkan nama lengkap"
                                 class="input-field @error('customer_name') border-red-400 @enderror" required>
                             @error('customer_name')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                         </div>
 
+                        <!-- HP -->
                         <div>
                             <label class="label">No. HP / WhatsApp</label>
-                            <input type="tel" name="customer_phone" value="{{ old('customer_phone') }}"
-                                placeholder="08xxxxxxxxxx" class="input-field">
+                            <input type="tel" name="customer_phone" x-model="phone" placeholder="08xxxxxxxxxx"
+                                class="input-field">
+                        </div>
+                        {{-- yang member member aja --}}
+                        <div class="col-span-2 flex items-center gap-2 mt-2">
+                            <input type="checkbox" name="is_member" value="1" x-model="isMember">
+                            <label class="text-sm font-semibold text-gray-700">
+                                Jadikan Member (Diskon 10%)
+                            </label>
                         </div>
 
+                        <!-- ESTIMASI -->
                         <div>
                             <label class="label">Estimasi Selesai <span class="text-red-500">*</span></label>
                             <input type="date" name="estimated_done"
@@ -200,9 +237,8 @@
 
     @push('scripts')
         <script>
-            // ✅ Data layanan dari PHP → JS (satu kali render, tidak duplikat)
             const SERVICE_OPTIONS = @json($services);
-        
+
             function orderForm() {
                 return {
                     deliveryType: '{{ old('delivery_type', 'pickup') }}',

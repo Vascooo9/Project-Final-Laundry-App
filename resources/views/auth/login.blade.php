@@ -15,15 +15,15 @@
         {{-- Logo --}}
         <div class="text-center mb-8">
             <div class="inline-flex items-center justify-center w-16 h-16 bg-sky-600 rounded-2xl shadow-lg mb-4">
-                <span class="text-3xl">🧺</span>
+                <img src="{{ asset('images/logolaundry.jpeg') }}" alt="Logo">
             </div>
-            <h1 class="text-2xl font-bold text-gray-900">LaundryPro</h1>
-            <p class="text-gray-500 text-sm mt-1">Sistem Informasi Laundry</p>
+            <h1 class="text-2xl font-bold text-gray-900">Vasco Laundry</h1>
+            <p class="text-gray-500 text-sm mt-1">From Vasco Company</p>
         </div>
 
         {{-- Card --}}
         <div class="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
-            <h2 class="text-xl font-bold text-gray-800 mb-6">Selamat Datang 👋</h2>
+            <h2 class="text-xl font-bold text-gray-800 mb-6">Selamat Datang </h2>
 
             @if($errors->any())
             <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
@@ -73,10 +73,10 @@
 
         {{-- Demo credentials --}}
         <div class="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-            <p class="text-xs font-semibold text-amber-800 mb-2">🔑 Akun Demo:</p>
+            <p class="text-xs font-semibold text-amber-800 mb-2">🔑 Akun Contoh:</p>
             <div class="space-y-1 text-xs text-amber-700">
-                <p><span class="font-medium">Admin:</span> admin@laundrypro.id / password</p>
-                <p><span class="font-medium">Karyawan:</span> budi@laundrypro.id / password</p>
+                <p><span class="font-medium">Admin:</span> jamaladmin@laundrypro.id / password</p>
+                <p><span class="font-medium">Karyawan:</span> budioperator@laundrypro.id / password</p>
             </div>
         </div>
     </div>

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Dashboard') - LaundryPro</title>
+    <title>@yield('title', 'Dashboard') - Vasco Laundry</title>
 
     {{-- Tailwind CSS via CDN (gunakan Vite untuk production) --}}
     <script src="https://cdn.tailwindcss.com"></script>
@@ -63,11 +63,11 @@
         <div class="p-6 border-b border-white/10">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow">
-                    <span class="text-xl">🧺</span>
+                    <img src="{{ asset('images/logolaundry.jpeg') }}" alt="Logo">
                 </div>
                 <div>
-                    <h1 class="text-white font-bold text-lg leading-tight">LaundryPro</h1>
-                    <p class="text-sky-200 text-xs">Sistem Informasi Laundry</p>
+                    <h1 class="text-white font-bold text-lg leading-tight">Vasco Laundry</h1>
+                    <p class="text-sky-200 text-xs">By Vasco Company</p>
                 </div>
             </div>
         </div>
