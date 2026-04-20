@@ -126,37 +126,100 @@
                             @endforeach
                         </tbody>
                         <tfoot class="bg-sky-50">
-                            <!-- Sini subtotal -->
+                            @php
+                                $subtotal = $order->subtotal ?? 0;
+                                $memberDiscount = $order->discount_amount ?? 0;
+
+                                // voucher dari transaction (kalau sudah bayar)
+                                $voucherDiscount = $order->transaction->voucher_discount ?? 0;
+                                $deliveryFee = $order->delivery_fee ?? 0;
+
+                                $afterMember = $subtotal - $memberDiscount;
+                                $afterVoucher = $afterMember - $voucherDiscount;
+                                $tax = $order->transaction->tax_amount ?? ($afterVoucher * 0.1);
+
+                                $finalTotal = $afterVoucher + $tax + $deliveryFee;
+                            @endphp
+
+                            {{-- <!-- DEBUG -->
                             <tr>
+                                <td colspan="4" class="text-red-500 text-right">
+                                    DEBUG ONGKIR: {{ $order->delivery_fee }}
+                                </td>
+                            </tr> --}}
+
+                            <!-- Sini subtotal -->
+                            {{-- <tr>
                                 <td colspan="3" class="px-5 py-2 text-right text-gray-600">Subtotal</td>
                                 <td class="px-5 py-2 text-right">
-                                    Rp {{ number_format($order->subtotal, 0, ',', '.') }}
+                                    <span class="inline-block w-[120px] text-right font-mono">
+                                        Rp {{ number_format($order->subtotal, 0, ',', '.') }}
+                                    </span>
                                 </td>
-                            </tr>
+                            </tr> --}}
+
+                            {{-- Diskon Member --}}
+                            {{-- @if(($order->discount_amount ?? 0) > 0)
+                                <tr>
+                                    <td colspan="3" class="text-right text-gray-600">Member</td>
+                                    <td class="text-right text-green-500">
+                                        <span class="inline-block w-[120px] text-right font-mono">
+                                            - Rp {{ number_format($order->discount_amount, 0, ',', '.') }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            @endif --}}
+
+                            {{-- Voucher --}}
+                            @php
+                                $voucherDiscount = $order->transaction?->voucher_discount ?? 0;
+                                $voucherCode = $order->transaction?->voucher_code ?? null;
+                            @endphp
+
+                            {{-- @if($voucherDiscount > 0)
+                                <tr>
+                                    <td colspan="3" class="text-right text-gray-600">
+                                        Voucher ({{ $voucherCode }})
+                                    </td>
+                                    <td class="text-right text-green-500">
+                                        <span class="inline-block w-[120px] text-right font-mono">
+                                            - Rp {{ number_format($voucherDiscount, 0, ',', '.') }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            @endif --}}
 
                             <!-- ini pajaknya nih -->
-                            <tr>
+                            {{-- <tr>
                                 <td colspan="3" class="px-5 py-2 text-right text-gray-600">Tax</td>
                                 <td class="px-5 py-2 text-right">
-                                    Rp {{ number_format($order->transaction->tax_amount ?? 0, 0, ',', '.') }}
+                                    <span class="inline-block w-[120px] text-right font-mono">
+                                        Rp {{ number_format($tax, 0, ',', '.') }}
+                                    </span>
                                 </td>
-                            </tr>
+                            </tr> --}}
 
-                            {{-- ini table diskon --}}
-                            <tr>
-                                <td colspan="3" class="text-right text-gray-600">Diskon</td>
-                                <td class="text-right text-green-500">
-                                    - Rp {{ number_format($order->discount_amount ?? 0, 0, ',', '.') }}
-                                </td>
-                            </tr>
+                            {{-- ini fee ongkirnya --}}
+                            {{-- @if(($order->delivery_fee ?? 0) > 0)
+                                <tr>
+                                    <td colspan="3" class="text-right text-gray-600">Ongkir</td>
+                                    <td class="text-right">
+                                        <span class="inline-block w-[120px] text-right font-mono">
+                                            Rp {{ number_format($order->delivery_fee, 0, ',', '.') }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            @endif --}}
 
                             <!-- ini grandTotal -->
-                            <tr>
+                            {{-- <tr>
                                 <td colspan="3" class="px-5 py-3 font-bold text-gray-800 text-right">TOTAL</td>
                                 <td class="px-5 py-3 font-bold text-sky-700 text-right text-lg">
-                                    Rp {{ number_format($order->transaction->amount ?? $order->total_amount, 0, ',', '.') }}
+                                    <span class="inline-block w-[120px] text-right font-mono">
+                                        Rp {{ number_format($finalTotal, 0, ',', '.') }}
+                                    </span>
                                 </td>
-                            </tr>
+                            </tr> --}}
                         </tfoot>
                     </table>
                 </div>
@@ -295,71 +358,99 @@
 
                 <!-- ✅ CORE LOGIC DI SINI -->
                 <div x-data="{
+                                method: 'cash',
                                 cashReceived: 0,
                                 subtotal: {{ $order->subtotal ?? 0 }},
                                 discount: {{ $order->discount_amount ?? 0 }},
+                                deliveryFee: {{ $order->delivery_fee ?? 0 }},
                                 voucherCode: '',
                                 voucherDiscount: 0,
+                                referenceNumber: '',
                                 taxRate: 0.1,
 
                                 formatRupiah(val) {
-                                return new Intl.NumberFormat('id-ID').format(val || 0)
+                                    return new Intl.NumberFormat('id-ID').format(val || 0)
                                 },
 
                                 applyVoucher() {
-                                let base = Number(this.subtotal || 0) - Number(this.discount || 0);
+                                    let base = Number(this.subtotal || 0) - Number(this.discount || 0);
 
-                                if (this.voucherCode === 'DISKON10') {
-                                this.voucherDiscount = base * 0.1;
-                                } else if (this.voucherCode === 'HEMAT5') {
-                                this.voucherDiscount = 5000;
-                                } else {
-                                this.voucherDiscount = 0;
-                                }},
+                                    if (this.voucherCode === 'DISKON10') {
+                                        this.voucherDiscount = base * 0.1;
+                                    } else if (this.voucherCode === 'HEMAT5') {
+                                        this.voucherDiscount = 5000;
+                                    } else {
+                                        this.voucherDiscount = 0;
+                                        }
+                                    },
 
                                 get afterDiscount() {
-                                return Number(this.subtotal || 0) - Number(this.discount || 0)
+                                    return Number(this.subtotal || 0) - Number(this.discount || 0)
                                 },
 
-                                et afterVoucher() {
-                                return this.afterDiscount - Number(this.voucherDiscount || 0)
+                                get afterVoucher() {
+                                    return this.afterDiscount - Number(this.voucherDiscount || 0)
                                 },
 
                                 get tax() {
-                                return this.afterVoucher * Number(this.taxRate || 0)
-                                },
+                                    return this.afterVoucher * Number(this.taxRate || 0)
+                                                                    },
 
                                 get grandTotal() {
-                                return this.afterVoucher + this.tax
+                                    return (this.afterVoucher || 0) + (this.tax || 0) + (this.deliveryFee || 0)
                                 },
 
                                 get change() {
-                                return Number(this.cashReceived || 0) - this.grandTotal
-                                }}">
+                                    return Number(this.cashReceived || 0) - this.grandTotal
+                                }}" x-effect="applyVoucher()">
 
                     <!-- TOTAL + TAX -->
                     <div class="bg-sky-50 border border-sky-200 rounded-xl p-4 text-center mb-5">
-                        <p class="text-sm text-sky-600 font-medium">Subtotal</p>
+
+                        {{-- <p class="text-sm text-sky-600 font-medium">Subtotal</p>
                         <p class="text-lg font-semibold text-gray-700">
                             Rp {{ number_format($order->subtotal, 0, ',', '.') }}
-                        </p>
+                        </p> --}}
 
-                        <p class="text-sm text-green-600">
-                            Diskon: - Rp {{ number_format($order->discount_amount, 0, ',', '.') }}
-                        </p>
+                        <!-- Diskon Member -->
+                        {{-- <p class="text-sm text-green-600">
+                            Diskon Member: - Rp {{ number_format($order->discount_amount, 0, ',', '.') }}
+                        </p> --}}
 
-                        <p class="text-sm text-gray-600 mt-2">
+                        <!-- Voucher -->
+                        {{-- <template x-if="voucherDiscount > 0">
+                            <p class="text-sm text-green-600">
+                                Voucher: - Rp
+                                <span x-text="formatRupiah(voucherDiscount)"></span>
+                            </p>
+                        </template> --}}
+
+                        <!-- Tax -->
+                        {{-- <p class="text-sm text-gray-600 mt-2">
                             Tax (10%): Rp
-                            <span x-text="new Intl.NumberFormat('id-ID').format(tax)"></span>
-                        </p>
+                            <span x-text="formatRupiah(tax)"></span>
+                        </p> --}}
 
-                        <p class="text-2xl font-bold text-sky-700 mt-2">
-                            Rp <span x-text="new Intl.NumberFormat('id-ID').format(grandTotal)"></span>
-                        </p>
+                        <!-- Ongkir -->
+                        {{-- <template x-if="deliveryFee > 0">
+                            <p class="text-sm text-gray-600">
+                                Ongkir: Rp
+                                <span x-text="formatRupiah(deliveryFee)"></span>
+                            </p>
+                        </template> --}}
+
+                        <!-- Total -->
+                        {{-- <p class="text-2xl font-bold text-sky-700 mt-2">
+                            Rp <span x-text="formatRupiah(grandTotal)"></span>
+                        </p> --}}
+
                     </div>
 
                     <form action="{{ route('orders.payment', $order) }}" method="POST">
                         @csrf
+
+                        <input type="hidden" name="voucher_code" :value="voucherCode">
+                        <input type="hidden" name="voucher_discount" :value="voucherDiscount">
 
                         <!-- PAYMENT METHOD -->
                         <div class="mb-4 text-left">
@@ -385,33 +476,41 @@
                                     <input type="radio" name="payment_method" value="cash" x-model="method"
                                         class="sr-only peer">
                                     <div class="p-3 border-2 rounded-xl 
-                                        peer-checked:border-sky-500 
-                                        peer-checked:bg-sky-50 
-                                        border-gray-200 text-center">
+                                                                            peer-checked:border-sky-500 
+                                                                            peer-checked:bg-sky-50 
+                                                                            border-gray-200 text-center">
                                         💵 Cash
                                     </div>
                                 </label>
 
                                 <!-- TRANSFER -->
-                                <label class="cursor-pointer">
+                                {{-- <label class="cursor-pointer">
                                     <input type="radio" name="payment_method" value="transfer" x-model="method"
                                         class="sr-only peer">
                                     <div class="p-3 border-2 rounded-xl 
-                                        peer-checked:border-sky-500 
-                                        peer-checked:bg-sky-50 
-                                        border-gray-200 text-center">
+                                                                            peer-checked:border-sky-500 
+                                                                            peer-checked:bg-sky-50 
+                                                                            border-gray-200 text-center">
                                         📱 Transfer
                                     </div>
-                                </label>
+                                </label> --}}
 
                             </div>
                         </div>
 
                         <!-- TRANSFER -->
-                        <div x-show="method === 'transfer'" class="mb-4 text-left">
-                            <input type="text" name="reference_number" placeholder="No referensi"
-                                class="w-full border rounded-lg px-3 py-2">
-                        </div>
+                        <template x-if="method === 'transfer'">
+                            <div class="mb-4 text-left">
+                                <input 
+                                    type="text" 
+                                    name="reference_number"
+                                    x-model="referenceNumber"
+                                    placeholder="No akun bank || Nama akun bank"
+                                    class="w-full border rounded-lg px-3 py-2">
+                            </div>
+                        </template>
+
+                        <input type="hidden" name="reference_number" :value="referenceNumber">
 
                         <!-- CASH -->
                         <div x-show="method === 'cash'" class="mb-4 text-left">

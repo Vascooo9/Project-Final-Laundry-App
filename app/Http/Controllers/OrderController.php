@@ -10,6 +10,7 @@ use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class OrderController extends Controller
 {
@@ -112,6 +113,7 @@ class OrderController extends Controller
                 'delivery_type'    => $request->delivery_type,
                 'delivery_address' => $request->delivery_address,
                 'delivery_phone'   => $request->delivery_phone,
+                'delivery_fee'     => $request->delivery_fee ?? 0,
                 'estimated_done'   => $request->estimated_done,
                 'notes'            => $request->notes,
                 'status'           => 'pending',
@@ -185,21 +187,28 @@ class OrderController extends Controller
         }
 
         $tax_rate = 0.1;
-
+        $delivery_fee = $order->delivery_fee ?? 0;
         $subtotal = $order->subtotal ?? $order->total_amount;
         $member_discount = $order->discount_amount ?? 0;
         $voucher_discount = $request->voucher_discount ?? 0;
-        
+
         $after_member = $subtotal - $member_discount;
         $after_voucher = $after_member - $voucher_discount;
 
         $tax_amount = $after_voucher * $tax_rate;
-        $grand_total = $after_voucher + $tax_amount;
-
+        $grand_total = $after_voucher + $tax_amount + $delivery_fee;
         $request->validate([
             'payment_method'   => ['required', 'in:cash,transfer'],
             'reference_number' => ['required_if:payment_method,transfer', 'nullable', 'string'],
-            'cash_received'    => ['required_if:payment_method,cash', 'nullable', 'numeric', 'min:' . $grand_total],
+            'cash_received' => [
+                'nullable',
+                'numeric',
+                Rule::requiredIf($request->payment_method === 'cash'),
+                Rule::when(
+                    $request->payment_method === 'cash',
+                    ['min:' . $grand_total]
+                ),
+            ],
         ]);
 
         $cash_received = null;
@@ -217,7 +226,7 @@ class OrderController extends Controller
             $cash_received,
             $tax_amount,
             $change_amount,
-            $voucher_discount
+            $voucher_discount,
         ) {
             Transaction::create([
                 'order_id'         => $order->id,

@@ -21,19 +21,19 @@
                     </div>
 
                     <div class="grid grid-cols-2 gap-4" x-data='{
-                            customers: @json($customers),
-                            name: @json(old("customer_name")),
-                            phone: @json(old("customer_phone")),
+                                            customers: @json($customers),
+                                            name: @json(old("customer_name")),
+                                            phone: @json(old("customer_phone")),
 
-                            selectCustomer(id) {
-                            const c = this.customers.find(x => x.id == id);
-                            if (c) {
-                            this.selectedId = c.id;
-                            this.name = c.name;
-                            this.phone = c.phone ?? "";
-                            this.isMember = c.is_member ?? false;}
-                            }
-                        }'>
+                                            selectCustomer(id) {
+                                            const c = this.customers.find(x => x.id == id);
+                                            if (c) {
+                                            this.selectedId = c.id;
+                                            this.name = c.name;
+                                            this.phone = c.phone ?? "";
+                                            this.isMember = c.is_member ?? false;}
+                                            }
+                                        }'>
 
                         <input type="hidden" name="customer_id" :value="selectedId">
 
@@ -165,6 +165,7 @@
 
                 {{-- Step 3: Pengambilan --}}
                 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+
                     <div class="flex items-center gap-3 mb-5">
                         <div
                             class="w-8 h-8 bg-sky-600 text-white rounded-lg flex items-center justify-center font-bold text-sm">
@@ -194,6 +195,14 @@
                                 <p class="text-xs text-gray-500">Diantar ke alamat customer</p>
                             </div>
                         </label>
+                    </div>
+
+                    <input type="hidden" name="delivery_fee" :value="deliveryFee">
+
+                    <div class="mt-2 text-sm text-gray-600" x-show="deliveryFee > 0">
+                        Ongkir: <span class="font-semibold text-sky-600">
+                            Rp <span x-text="new Intl.NumberFormat('id-ID').format(deliveryFee)"></span>
+                        </span>
                     </div>
 
                     <div x-show="deliveryType === 'delivery'" x-transition
@@ -244,7 +253,18 @@
                     deliveryType: '{{ old('delivery_type', 'pickup') }}',
                     serviceOptions: SERVICE_OPTIONS,
                     services: [{ service_id: '', qty: 1, price: 0, type: 'per_kg', subtotal: 0, note: '' }],
+                    deliveryFee: 0,
                     total: 0,
+
+                    init() {
+                        this.deliveryFee = this.deliveryType === 'delivery' ? 5000 : 0;
+                        this.calculateTotal();
+
+                        this.$watch('deliveryType', (value) => {
+                            this.deliveryFee = value === 'delivery' ? 5000 : 0;
+                            this.calculateTotal(); 
+                        });
+                    },
 
                     addService() {
                         this.services.push({ service_id: '', qty: 1, price: 0, type: 'per_kg', subtotal: 0, note: '' });
@@ -277,7 +297,8 @@
                     },
 
                     calculateTotal() {
-                        this.total = this.services.reduce((sum, i) => sum + (i.subtotal || 0), 0);
+                        let serviceTotal = this.services.reduce((sum, i) => sum + (i.subtotal || 0), 0);
+                        this.total = serviceTotal + (this.deliveryType === 'delivery' ? 5000 : 0);
                     },
 
                     formatRupiah(val) {

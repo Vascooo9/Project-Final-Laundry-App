@@ -64,7 +64,7 @@
 </head>
 
 <body>
-    <div class="center bold" style="font-size:16px">🧺 LAUNDRYPRO</div>
+    <div class="center bold" style="font-size:16px">Vasco Laundry</div>
     <div class="center small">Sistem Laundry Profesional</div>
     <div class="divider"></div>
 
@@ -106,10 +106,14 @@
 
     @php
         $subtotal = $order->subtotal ?? 0;
-        $discount = $order->discount_amount ?? 0;
-        $afterDiscount = $subtotal - $discount;
-        $tax = $afterDiscount * 0.1;
-        $grandTotal = $afterDiscount + $tax;
+        $memberDiscount = $order->discount_amount ?? 0;
+        $voucherDiscount = $order->transaction->voucher_discount ?? 0;
+
+        $afterMember = $subtotal - $memberDiscount;
+        $afterVoucher = $afterMember - $voucherDiscount;
+        $deliveryFee = $order->delivery_fee ?? 0;
+        $tax = $order->transaction->tax_amount ?? 0;
+        $grandTotal = $afterVoucher + $tax + $deliveryFee;
     @endphp
 
     <div class="divider"></div>
@@ -119,10 +123,17 @@
         <span>Rp {{ number_format($subtotal, 0, ',', '.') }}</span>
     </div>
 
-    @if($discount > 0)
+    @if($memberDiscount > 0)
         <div class="row">
             <span>Diskon</span>
-            <span>- Rp {{ number_format($discount, 0, ',', '.') }}</span>
+            <span>- Rp {{ number_format($memberDiscount, 0, ',', '.') }}</span>
+        </div>
+    @endif
+
+    @if($order->transaction?->voucher_discount > 0)
+        <div class="row">
+            <span>Voucher ({{ $order->transaction->voucher_code }})</span>
+            <span>- Rp {{ number_format($order->transaction->voucher_discount, 0, ',', '.') }}</span>
         </div>
     @endif
 
@@ -131,9 +142,16 @@
         <span>Rp {{ number_format($tax, 0, ',', '.') }}</span>
     </div>
 
+    @if(($order->delivery_fee ?? 0) > 0)
+        <div class="row">
+            <span>Ongkir</span>
+            <span>Rp {{ number_format($order->delivery_fee, 0, ',', '.') }}</span>
+        </div>
+    @endif
+
     <div class="row total-row">
         <span>TOTAL</span>
-        <span>Rp {{ number_format($grandTotal, 0, ',', '.') }}</span>
+        <span>Rp {{ number_format($order->transaction->amount, 0, ',', '.') }}</span>
     </div>
 
     @if($order->payment_status === 'paid')
@@ -156,7 +174,7 @@
 
     <div class="divider"></div>
     <div class="center small">Terima kasih telah menggunakan</div>
-    <div class="center small bold">LaundryPro! 🧺</div>
+    <div class="center small bold">Vasco Laundry</div>
     <div class="center small">Barang ditunggu paling lambat 30 hari</div>
 
     <div style="margin-top:15px;" class="no-print center">
