@@ -149,17 +149,17 @@
                             </tr> --}}
 
                             <!-- Sini subtotal -->
-                            {{-- <tr>
+                            <tr>
                                 <td colspan="3" class="px-5 py-2 text-right text-gray-600">Subtotal</td>
                                 <td class="px-5 py-2 text-right">
                                     <span class="inline-block w-[120px] text-right font-mono">
                                         Rp {{ number_format($order->subtotal, 0, ',', '.') }}
                                     </span>
                                 </td>
-                            </tr> --}}
+                            </tr>
 
                             {{-- Diskon Member --}}
-                            {{-- @if(($order->discount_amount ?? 0) > 0)
+                            @if(($order->discount_amount ?? 0) > 0)
                                 <tr>
                                     <td colspan="3" class="text-right text-gray-600">Member</td>
                                     <td class="text-right text-green-500">
@@ -168,7 +168,7 @@
                                         </span>
                                     </td>
                                 </tr>
-                            @endif --}}
+                            @endif
 
                             {{-- Voucher --}}
                             @php
@@ -176,7 +176,7 @@
                                 $voucherCode = $order->transaction?->voucher_code ?? null;
                             @endphp
 
-                            {{-- @if($voucherDiscount > 0)
+                            @if($voucherDiscount > 0)
                                 <tr>
                                     <td colspan="3" class="text-right text-gray-600">
                                         Voucher ({{ $voucherCode }})
@@ -187,20 +187,20 @@
                                         </span>
                                     </td>
                                 </tr>
-                            @endif --}}
+                            @endif
 
                             <!-- ini pajaknya nih -->
-                            {{-- <tr>
+                            <tr>
                                 <td colspan="3" class="px-5 py-2 text-right text-gray-600">Tax</td>
                                 <td class="px-5 py-2 text-right">
                                     <span class="inline-block w-[120px] text-right font-mono">
                                         Rp {{ number_format($tax, 0, ',', '.') }}
                                     </span>
                                 </td>
-                            </tr> --}}
+                            </tr>
 
                             {{-- ini fee ongkirnya --}}
-                            {{-- @if(($order->delivery_fee ?? 0) > 0)
+                            @if(($order->delivery_fee ?? 0) > 0)
                                 <tr>
                                     <td colspan="3" class="text-right text-gray-600">Ongkir</td>
                                     <td class="text-right">
@@ -209,17 +209,17 @@
                                         </span>
                                     </td>
                                 </tr>
-                            @endif --}}
+                            @endif
 
                             <!-- ini grandTotal -->
-                            {{-- <tr>
+                            <tr>
                                 <td colspan="3" class="px-5 py-3 font-bold text-gray-800 text-right">TOTAL</td>
                                 <td class="px-5 py-3 font-bold text-sky-700 text-right text-lg">
                                     <span class="inline-block w-[120px] text-right font-mono">
                                         Rp {{ number_format($finalTotal, 0, ',', '.') }}
                                     </span>
                                 </td>
-                            </tr> --}}
+                            </tr>
                         </tfoot>
                     </table>
                 </div>
@@ -407,10 +407,10 @@
                     <!-- TOTAL + TAX -->
                     <div class="bg-sky-50 border border-sky-200 rounded-xl p-4 text-center mb-5">
 
-                        {{-- <p class="text-sm text-sky-600 font-medium">Subtotal</p>
+                        <p class="text-sm text-sky-600 font-medium">Subtotal</p>
                         <p class="text-lg font-semibold text-gray-700">
                             Rp {{ number_format($order->subtotal, 0, ',', '.') }}
-                        </p> --}}
+                        </p>
 
                         <!-- Diskon Member -->
                         {{-- <p class="text-sm text-green-600">
@@ -426,10 +426,10 @@
                         </template> --}}
 
                         <!-- Tax -->
-                        {{-- <p class="text-sm text-gray-600 mt-2">
+                        <p class="text-sm text-gray-600 mt-2">
                             Tax (10%): Rp
                             <span x-text="formatRupiah(tax)"></span>
-                        </p> --}}
+                        </p>
 
                         <!-- Ongkir -->
                         {{-- <template x-if="deliveryFee > 0">
@@ -440,9 +440,9 @@
                         </template> --}}
 
                         <!-- Total -->
-                        {{-- <p class="text-2xl font-bold text-sky-700 mt-2">
+                        <p class="text-2xl font-bold text-sky-700 mt-2">
                             Rp <span x-text="formatRupiah(grandTotal)"></span>
-                        </p> --}}
+                        </p>
 
                     </div>
 

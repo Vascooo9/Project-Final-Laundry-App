@@ -11,7 +11,6 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // ✅ FIX: is_active => true wajib disertakan eksplisit
         User::firstOrCreate(
             ['email' => 'admin@laundrypro.id'], 
             [
@@ -27,7 +26,7 @@ class DatabaseSeeder extends Seeder
             [
                 'name'      => 'Lalo Salamanca',
                 'password'  => Hash::make('password'),
-                'role'      => 'admin',
+                'role'      => 'ceo',
                 'is_active' => true,
             ]
         );

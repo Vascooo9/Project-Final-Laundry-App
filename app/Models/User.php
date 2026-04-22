@@ -25,6 +25,11 @@ class User extends Authenticatable
         return $this->role === 'karyawan';
     }
 
+    public function isCeo(): bool
+    {
+        return $this->role === 'ceo';
+    }
+
     public function orders()
     {
         return $this->hasMany(Order::class);

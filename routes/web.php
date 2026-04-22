@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OrderController;
@@ -43,7 +44,19 @@ Route::middleware(['auth'])->group(function () {
             Route::delete('/{service}',   [ServiceController::class, 'destroy'])->name('destroy');
         });
 
-        // Reports
-        Route::get('/admin/reports', [ReportController::class, 'index'])->name('admin.reports.index');
+        Route::prefix('admin/users')->name('admin.users.')->group(function () {
+        Route::get('/', [AdminController::class, 'index'])->name('index');
+        Route::get('/create', [AdminController::class, 'create'])->name('create');
+        Route::post('/', [AdminController::class, 'store'])->name('store');
+        Route::get('/{user}/edit', [AdminController::class, 'edit'])->name('edit');
+        Route::put('/{user}', [AdminController::class, 'update'])->name('update');
+        Route::delete('/{user}', [AdminController::class, 'destroy'])->name('destroy');
+    });
+    });
+
+    // ADMIN + CEO
+    Route::middleware('role:admin,ceo')->group(function () {
+        Route::get('/admin/reports', [ReportController::class, 'index'])
+            ->name('admin.reports.index');
     });
 });
